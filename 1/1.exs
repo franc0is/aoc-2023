@@ -38,13 +38,7 @@ defmodule Part2 do
       |> Enum.map(&String.reverse(&1))
     digits =
       [first, last]
-      |> Enum.map(fn found -> 
-        if String.length(found) > 1 do
-          Map.fetch!(@digit_map, found)
-        else
-          found
-        end
-      end)
+      |> Enum.map(&Map.get(@digit_map, &1, &1))
     value = List.first(digits) <> List.last(digits)
     #IO.puts("#{line} -> #{value}")
     String.to_integer(value)
