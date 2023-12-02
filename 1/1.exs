@@ -31,13 +31,11 @@ defmodule Part2 do
   }
 
   def decode_line(line) do
-    first = 
+    [first] = 
       Regex.run(@digit_regex, line)
-      |> Enum.at(0)
-    last = 
+    [last] = 
       Regex.run(@digit_regex_rev, String.reverse(line))
-      |> Enum.at(0)
-      |> String.reverse
+      |> Enum.map(&String.reverse(&1))
     digits =
       [first, last]
       |> Enum.map(fn found -> 
