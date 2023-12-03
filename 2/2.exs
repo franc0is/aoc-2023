@@ -1,18 +1,15 @@
 defmodule Part2 do
   def decode_line(line) do
-    [game | draws] = String.split(line, [";", ":"])
-    [_, game_id] = Regex.run(~r/Game (\d+)/, game)
+    [_ | draws] = String.split(line, [";", ":"])
     Enum.map(draws, fn draw -> 
       Regex.scan(~r/(\d+)\s*(blue|green|red)/, draw)
       |> Enum.reduce(%{}, fn [_, number, color], acc ->
         Map.put(acc, color, String.to_integer(number))
       end)
     end)
-    |> Enum.reduce(%{}, fn draw, acc ->
-      Map.merge(draw, acc, fn _k1, v1, v2 ->
-        max(v1, v2)
-      end)
-    end)
+    |> Enum.reduce(%{}, &Map.merge(&1, &2, fn _k1, v1, v2 ->
+                          max(v1, v2)
+                        end))
     |> Map.values
     |> Enum.reduce(1, &(&1 * &2))
   end
@@ -22,7 +19,6 @@ defmodule Part2 do
     |> File.stream!()
     |> Enum.map(fn line ->
       line
-      |> String.replace("\n", "")
       |> decode_line
     end)
     |> Enum.sum
@@ -58,7 +54,6 @@ defmodule Part1 do
     |> File.stream!()
     |> Enum.map(fn line ->
       line
-      |> String.replace("\n", "")
       |> decode_line
     end)
     |> Enum.sum
