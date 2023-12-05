@@ -1,4 +1,4 @@
-defmodule Token do
+defmodule Day3Token do
   defstruct y: -1, x_min: -1, x_max: -1, value: 0
 
   def adjacent?(t1, t2) do
@@ -17,13 +17,13 @@ defmodule Day3 do
             |> Enum.join
             |> String.to_integer
       x_min = x - length(wip) + 1
-      [%Token{y: y, x_min: x_min, x_max: x, value: num} | numbers]
+      [%Day3Token{y: y, x_min: x_min, x_max: x, value: num} | numbers]
     else
       numbers
     end
   end
 
-  def parse_line(line, y, columns) do
+  def parse_line(line, y, n_columns) do
     {_, numbers, symbols} =
       line
       |> String.graphemes
@@ -32,7 +32,7 @@ defmodule Day3 do
         if String.match?(g, ~r/^\d$/) do
           # digit
           wip = [g | wip]
-          if x >= (columns - 1) do
+          if x >= (n_columns - 1) do
             {[], numbers_from_wip(wip, x, y, numbers), symbols}
           else
             {wip, numbers, symbols}
@@ -44,7 +44,7 @@ defmodule Day3 do
               {[], numbers_from_wip(wip, x - 1, y, numbers), symbols}
             _ ->
               #symbol
-              {[], numbers_from_wip(wip, x - 1, y, numbers), [%Token{y: y, x_min: x, x_max: x, value: g} | symbols]}
+              {[], numbers_from_wip(wip, x - 1, y, numbers), [%Day3Token{y: y, x_min: x, x_max: x, value: g} | symbols]}
           end
         end
       end)
@@ -52,53 +52,51 @@ defmodule Day3 do
   end
 
   def find_and_add_part_numbers({numbers, symbols}) do
-    {n, _} = numbers
-             |> Enum.reduce({0, symbols}, fn n, {acc, symbols} -> 
-               acc = symbols
-                     |> Enum.reduce_while(acc, fn s, acc ->
-                       if Token.adjacent?(s, n) do
-                         {:halt, acc + n.value}
-                       else
-                         {:cont, acc}
-                       end
-                     end)
-               {acc, symbols}
-             end)
-    n
+    numbers
+    |> Enum.reduce(0, fn n, acc -> 
+      symbols
+      |> Enum.reduce_while(acc, fn s, acc ->
+        # Could do better by only grabbing the ones from adjacent lines before iterating
+        if Day3Token.adjacent?(s, n) do
+          {:halt, acc + n.value}
+        else
+          {:cont, acc}
+        end
+      end)
+    end)
   end
 
+  @parts_per_gear 2
   def find_and_multiply_gears({numbers, symbols}) do
-    {n, _} = symbols
+    symbols
     |> Enum.filter(fn s -> s.value == "*" end)
-    |> Enum.reduce({0, numbers}, fn s, {acc, numbers} ->
-      #IO.inspect(s)
+    |> Enum.reduce(0, fn s, acc ->
       potential_gears = numbers
                         |> Enum.reduce([], fn n, parts ->
-                          if Token.adjacent?(s, n) do
+                          if Day3Token.adjacent?(s, n) do
                             [n | parts]
                           else
                             parts
                           end
                         end)
-      if length(potential_gears) == 2 do
-        {acc + Enum.at(potential_gears, 0).value * Enum.at(potential_gears, 1).value, numbers}
+      if length(potential_gears) == @parts_per_gear do
+        acc + Enum.reduce(potential_gears, 1, fn part, mul -> mul * part.value end)
       else
-        {acc, numbers}
+        acc
       end
     end)
-    n
   end
 
   def part2(file_path) do
     file_stream = File.stream!(file_path)
-    columns = (file_stream |> Enum.take(1) |> List.first |> String.length) - 1
+    n_columns = (file_stream |> Enum.take(1) |> List.first |> String.length) - 1
 
     file_stream
     |> Enum.with_index
     |> Enum.reduce({[], []}, fn {line, y}, {numbers, symbols} ->
       line = line
              |> String.replace("\n", "")
-      {n, s} = parse_line(line, y, columns)
+      {n, s} = parse_line(line, y, n_columns)
       {numbers ++ n, symbols ++ s}
     end)
     |> find_and_multiply_gears
@@ -106,14 +104,14 @@ defmodule Day3 do
 
   def part1(file_path) do
     file_stream = File.stream!(file_path)
-    columns = (file_stream |> Enum.take(1) |> List.first |> String.length) - 1
+    n_columns = (file_stream |> Enum.take(1) |> List.first |> String.length) - 1
 
     file_stream
     |> Enum.with_index
     |> Enum.reduce({[], []}, fn {line, y}, {numbers, symbols} ->
       line = line
              |> String.replace("\n", "")
-      {n, s} = parse_line(line, y, columns)
+      {n, s} = parse_line(line, y, n_columns)
       {numbers ++ n, symbols ++ s}
     end)
     |> find_and_add_part_numbers
