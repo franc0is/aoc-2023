@@ -16,39 +16,32 @@ defmodule Day4 do
 
     numbers_we_have
     |> Enum.reduce(0, fn n, acc ->
-      if n in winning_numbers do
-        acc + 1 
-      else
-        acc
-      end
+      acc + if n in winning_numbers, do: 1, else: 0
     end)
   end
 
   # Q: How much do I like recursion?
   # A: Quite a lot.
-  def process_game_by_index(lut, index, acc \\ 0) do
-    n_matches = lut
-                |> Enum.at(index)
-
-    match_list = if n_matches > 0 do Enum.to_list(1..n_matches) else [] end
-    process_matches(match_list, lut, index, acc + 1)
+  def process_game_by_index(lut, index) do
+    n_matches = Enum.at(lut, index)
+    process_matches(n_matches, lut, index, 1)
   end
 
-  defp process_matches([], _lut, _index, acc), do: acc
+  defp process_matches(0, _lut, _index, acc), do: acc
 
-  defp process_matches([match | rest], lut, index, acc) do
-    new_acc = acc + process_game_by_index(lut, index + match)
-    process_matches(rest, lut, index, new_acc)
+  defp process_matches(n_matches, lut, index, acc) do
+    new_acc = acc + process_game_by_index(lut, index + n_matches)
+    process_matches(n_matches - 1, lut, index, new_acc)
   end
 
   def part1(file_path) do
     File.stream!(file_path)
     |> Enum.reduce(0, fn line, score ->
       line
-      |> String.replace("\n", "")
+      |> String.trim
       |> find_matches
-      |> then(fn m -> trunc(:math.pow(2, m - 1)) end) # Score game
-      |> then(fn s -> score + s end) # Accumulate score
+      |> then(&trunc(:math.pow(2, &1 - 1))) # Score game
+      |> Kernel.+(score)
     end)
   end
 
@@ -56,14 +49,10 @@ defmodule Day4 do
     # We cache the number of matches in a LUT
     # Otherwise it's slow
     lut = File.stream!(file_path)
-          |> Enum.map(fn line ->
-            line
-            |> String.replace("\n", "")
-            |> find_matches
-          end)
+          |> Enum.map(&String.trim/1)
+          |> Enum.map(&find_matches/1)
 
-    lut
-    |> Enum.with_index
+    Enum.with_index(lut)
     |> Enum.reduce(0, fn {_, index}, acc ->
       acc + process_game_by_index(lut, index)
     end)
